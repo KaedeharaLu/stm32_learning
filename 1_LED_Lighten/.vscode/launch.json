@@ -1,0 +1,181 @@
+{
+    // 启动调试的快捷键是 F5。
+    // 本文件提供三种 STM32F103C8 常用调试器配置：
+    // 1. DAPLink  -> OpenOCD -> GDB
+    // 2. ST-Link  -> OpenOCD -> GDB
+    // 3. J-Link   -> J-Link GDB Server -> GDB（不经过 OpenOCD）
+    //
+    // 当前配置对应：
+    // - MCU：STM32F103C8
+    // - ELF：build/light_led2.elf
+    // - SVD：STM32F103.svd
+    // - OpenOCD Target：target/stm32f1x.cfg
+    //
+    // 如果换工程，主要修改 executable；
+    // 如果换 MCU，还要同步修改 device、svdFile 和 OpenOCD target。
+    //
+    // GDB、OpenOCD、J-Link GDB Server 的安装路径建议直接在
+    // Cortex-Debug 插件的“用户/全局设置”中配置，不在每个工程里重复写。
+
+    "version": "0.2.0",
+
+    "configurations": [
+
+        // ============================================================
+        // DAPLink / CMSIS-DAP
+        // ============================================================
+        {
+            "name": "DAPLink",
+            "cwd": "${workspaceFolder}",
+
+            // 要下载并调试的 ELF 文件。
+            "executable": "${workspaceFolder}/build/1_LED_Lighten.elf",
+
+            "request": "launch",
+            "type": "cortex-debug",
+
+            // 当前目标芯片：STM32F103C8。
+            "device": "STM32F103C8",
+
+            // SVD 文件用于查看 STM32F103 外设寄存器。
+            // 建议将 STM32F103.svd 放在工程根目录。
+            "svdFile": "${workspaceFolder}/STM32F103.svd",
+
+            // DAPLink 实现 CMSIS-DAP，这里通过 OpenOCD 连接。
+            "servertype": "openocd",
+
+            // interface/cmsis-dap.cfg：选择 CMSIS-DAP / DAPLink 调试器
+            // target/stm32f1x.cfg：选择 STM32F1 系列目标芯片
+            //
+            // 如果你的无线 DAPLink 必须使用工程自带的 openocd_dap.cfg，
+            // 可以把下面两个文件替换成：
+            // "configFiles": ["openocd_dap.cfg"]
+            "configFiles": [
+                "interface/cmsis-dap.cfg",
+                "target/stm32f1x.cfg"
+            ],
+
+            // 启动调试后自动运行到 main() 入口处停止。
+            "runToEntryPoint": "main",
+
+            // 使用 FreeRTOS 时取消下面这一行的注释；
+            // 裸机工程不要启用。
+            // "rtos": "FreeRTOS",
+
+            // Live Watch：程序运行时实时观察变量。
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+
+            // 必须保留：
+            // 指定 GDB 的 debug-file-directory，避免部分新版 GDB
+            // 在加载调试信息时出现路径/调试文件相关问题。
+            "debuggerArgs": [
+                "-iex",
+                "set debug-file-directory ${workspaceFolder}/.gdb-debug"
+            ],
+
+            // F5 启动调试前，先执行 tasks.json 中的 build task。
+            "preLaunchTask": "build task"
+        },
+
+        // ============================================================
+        // ST-Link
+        // ============================================================
+        {
+            "name": "ST-Link",
+            "cwd": "${workspaceFolder}",
+
+            // 要下载并调试的 ELF 文件。
+            "executable": "${workspaceFolder}/build/1_LED_Lighten.elf",
+
+            "request": "launch",
+            "type": "cortex-debug",
+
+            "device": "STM32F103C8",
+            "svdFile": "${workspaceFolder}/STM32F103.svd",
+
+            // ST-Link 这里使用 OpenOCD 作为 GDB Server。
+            "servertype": "openocd",
+
+            // interface/stlink.cfg：选择 ST-Link 调试器
+            // target/stm32f1x.cfg：选择 STM32F1 系列目标芯片
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f1x.cfg"
+            ],
+
+            // 启动调试后自动运行到 main() 入口处停止。
+            "runToEntryPoint": "main",
+
+            // 使用 FreeRTOS 时取消下面这一行的注释；
+            // 裸机工程不要启用。
+            // "rtos": "FreeRTOS",
+
+            // Live Watch：程序运行时实时观察变量。
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+
+            // 必须保留。
+            "debuggerArgs": [
+                "-iex",
+                "set debug-file-directory ${workspaceFolder}/.gdb-debug"
+            ],
+
+            // F5 启动调试前先编译。
+            "preLaunchTask": "build task"
+        },
+
+        // ============================================================
+        // J-Link
+        // ============================================================
+        {
+            "name": "J-Link",
+            "cwd": "${workspaceFolder}",
+
+            // 要下载并调试的 ELF 文件。
+            "executable": "${workspaceFolder}/build/1_LED_Lighten.elf",
+
+            "request": "launch",
+            "type": "cortex-debug",
+
+            // J-Link GDB Server 需要明确指定目标 MCU。
+            "device": "STM32F103C8",
+
+            // J-Link 直接使用 SEGGER J-Link GDB Server，
+            // 不经过 OpenOCD，因此这里不需要 configFiles。
+            "servertype": "jlink",
+
+            // STM32F103 常用 SWD 接口。
+            "interface": "swd",
+
+            // SVD 文件用于查看 STM32F103 外设寄存器。
+            "svdFile": "${workspaceFolder}/STM32F103.svd",
+
+            // 启动调试后自动运行到 main() 入口处停止。
+            "runToEntryPoint": "main",
+
+            // 使用 FreeRTOS 时取消下面这一行的注释；
+            // 裸机工程不要启用。
+            // "rtos": "FreeRTOS",
+
+            // Live Watch：程序持续运行时实时观察变量。
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 4
+            },
+
+            // 必须保留。
+            "debuggerArgs": [
+                "-iex",
+                "set debug-file-directory ${workspaceFolder}/.gdb-debug"
+            ],
+
+            // F5 启动调试前先编译。
+            "preLaunchTask": "build task"
+        }
+    ]
+}

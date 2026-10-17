@@ -1,2 +1,7 @@
 # stm32_learning
-stm32学习
+
+个人stm32学习记录。使用的是STM32F103C8T6。
+
+可以给我点个关注吗，然后给我的公开仓库点点star，感谢。
+
+!["努力"](./assets/README/1.jpg "努力")
